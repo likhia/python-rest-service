@@ -1,0 +1,74 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  creationTimestamp: '2022-02-24T08:35:16Z'
+  generation: 1
+  managedFields:
+    - apiVersion: tekton.dev/v1beta1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          .: {}
+          'f:finally': {}
+          'f:params': {}
+          'f:resources': {}
+          'f:tasks': {}
+          'f:workspaces': {}
+      manager: Mozilla
+      operation: Update
+      time: '2022-02-24T08:35:16Z'
+  name: sit-pipeline
+  namespace: pipeline
+  resourceVersion: '1250348'
+  uid: 39c1d7e7-3b21-4a02-ba48-b7f7bb1b086f
+spec:
+  finally:
+    - name: createroute
+      params:
+        - name: SCRIPT
+          value: oc expose service python-rest-service -n sit
+        - name: VERSION
+          value: latest
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: migrate-workspace
+        - name: kubeconfig-dir
+          workspace: migrate-workspace
+  tasks:
+    - name: tag
+      params:
+        - name: SCRIPT
+          value: >-
+            oc -n dev tag dev/python-rest-service:latest
+            sit/python-rest-service:sit
+        - name: VERSION
+          value: latest
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: migrate-workspace
+    - name: deploy
+      params:
+        - name: SCRIPT
+          value: >-
+            oc new-app --image-stream='sit/python-rest-service:sit'
+            --allow-missing-imagestream-tags -n sit
+        - name: VERSION
+          value: latest
+      runAfter:
+        - tag
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: migrate-workspace
+        - name: kubeconfig-dir
+          workspace: migrate-workspace
+  workspaces:
+    - name: migrate-workspace
