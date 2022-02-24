@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   creationTimestamp: '2022-02-24T08:35:16Z'
-  generation: 1
+  generation: 2
   managedFields:
     - apiVersion: tekton.dev/v1beta1
       fieldsType: FieldsV1
@@ -19,14 +19,14 @@ metadata:
       time: '2022-02-24T08:35:16Z'
   name: sit-pipeline
   namespace: pipeline
-  resourceVersion: '1250348'
+  resourceVersion: '1296613'
   uid: 39c1d7e7-3b21-4a02-ba48-b7f7bb1b086f
 spec:
   finally:
     - name: createroute
       params:
         - name: SCRIPT
-          value: oc expose service python-rest-service -n sit
+          value: oc expose service $(params.imagename) -n $(params.nextenv)
         - name: VERSION
           value: latest
       taskRef:
@@ -37,13 +37,24 @@ spec:
           workspace: migrate-workspace
         - name: kubeconfig-dir
           workspace: migrate-workspace
+  params:
+    - default: sit
+      name: nextenv
+      type: string
+    - default: dev
+      name: currentenv
+      type: string
+    - default: python-rest-service
+      name: imagename
+      type: string
   tasks:
     - name: tag
       params:
         - name: SCRIPT
           value: >-
-            oc -n dev tag dev/python-rest-service:latest
-            sit/python-rest-service:sit
+            oc -n $(params.currentenv) tag
+            $(params.currentenv)/$(params.imagename):latest
+            $(params.nextenv)/$(params.imagename):sit
         - name: VERSION
           value: latest
       taskRef:
@@ -56,8 +67,9 @@ spec:
       params:
         - name: SCRIPT
           value: >-
-            oc new-app --image-stream='sit/python-rest-service:sit'
-            --allow-missing-imagestream-tags -n sit
+            oc new-app
+            --image-stream='$(params.nextenv)/$(params.imagename):sit'
+            --allow-missing-imagestream-tags -n $(params.nextenv)
         - name: VERSION
           value: latest
       runAfter:
