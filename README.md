@@ -1,6 +1,7 @@
 # python-rest-services
 
-From https://stackoverflow.com/questions/49015957/how-to-get-python-graph-output-into-html-webpage-directly
+https://stackoverflow.com/questions/49015957/how-to-get-python-graph-output-into-html-webpage-directly
+https://towardsdatascience.com/build-your-own-python-restful-web-service-840ed7766832
 
 A simple program that create a rest service. 
 
