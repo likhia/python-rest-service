@@ -1,5 +1,7 @@
 # python-rest-services
 
+From https://stackoverflow.com/questions/49015957/how-to-get-python-graph-output-into-html-webpage-directly
+
 A simple program that create a rest service. 
 
 requirements.txt contains the packages to include when building application image.
