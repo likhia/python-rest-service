@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   creationTimestamp: '2022-03-01T07:15:38Z'
-  generation: 4
+  generation: 11
   managedFields:
     - apiVersion: tekton.dev/v1beta1
       fieldsType: FieldsV1
@@ -19,7 +19,7 @@ metadata:
       time: '2022-03-01T12:40:14Z'
   name: staging-pipeline
   namespace: pipeline
-  resourceVersion: '9450690'
+  resourceVersion: '9497166'
   uid: 6a4c2990-df9b-49d5-a82d-3a917ed82c1b
 spec:
   params:
@@ -34,9 +34,6 @@ spec:
       type: string
     - default: empty
       name: buildname
-      type: string
-    - default: empty
-      name: deployname
       type: string
   tasks:
     - name: git-clone
@@ -81,10 +78,10 @@ spec:
         kind: ClusterTask
         name: openshift-client
       when:
-        - input: $(params.buildname)
-          operator: in
+        - input: $(params.app-name)
+          operator: notin
           values:
-            - $(params.app-name)
+            - $(params.buildname)
       workspaces:
         - name: manifest-dir
           workspace: source
@@ -103,6 +100,11 @@ spec:
       taskRef:
         kind: ClusterTask
         name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+        - name: kubeconfig-dir
+          workspace: source
     - name: rebuild
       params:
         - name: SCRIPT
@@ -116,6 +118,11 @@ spec:
       taskRef:
         kind: ClusterTask
         name: openshift-client
+      when:
+        - input: $(params.buildname)
+          operator: in
+          values:
+            - $(params.app-name)
       workspaces:
         - name: manifest-dir
           workspace: source
