@@ -1,0 +1,177 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  creationTimestamp: '2022-03-01T07:15:38Z'
+  generation: 4
+  managedFields:
+    - apiVersion: tekton.dev/v1beta1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          .: {}
+          'f:finally': {}
+          'f:params': {}
+          'f:resources': {}
+          'f:tasks': {}
+          'f:workspaces': {}
+      manager: Mozilla
+      operation: Update
+      time: '2022-03-01T12:40:14Z'
+  name: staging-pipeline
+  namespace: pipeline
+  resourceVersion: '9450690'
+  uid: 6a4c2990-df9b-49d5-a82d-3a917ed82c1b
+spec:
+  params:
+    - default: staging
+      name: namespace
+      type: string
+    - default: python-rest-service
+      name: app-name
+      type: string
+    - default: ws.py
+      name: app-file
+      type: string
+    - default: empty
+      name: buildname
+      type: string
+    - default: empty
+      name: deployname
+      type: string
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: 'https://github.com/likhia/python-rest-service.git'
+        - name: revision
+          value: main
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:af7dd5b3b1598a980f17d5f5d3d8a4b11ab4f5184677f7f17ad302baa36bd3c1
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source
+    - name: build
+      params:
+        - name: SCRIPT
+          value: >-
+            oc new-build  --name=$(params.app-name)  --binary
+            --image-stream=python:latest -e APP_FILE=$(params.app-file) -n
+            $(params.namespace)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - checkbuild
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      when:
+        - input: $(params.buildname)
+          operator: in
+          values:
+            - $(params.app-name)
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+        - name: kubeconfig-dir
+          workspace: source
+    - name: checkbuild
+      params:
+        - name: SCRIPT
+          value: >-
+            oc get bc -n $(params.namespace) -o jsonpath='{range
+            .items[*].metadata}{.name}{"\n"}{end}' | tee $(params.buildname)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+    - name: rebuild
+      params:
+        - name: SCRIPT
+          value: >-
+            oc start-build $(params.app-name) -n $(params.namespace) 
+            --from-dir=.  --follow
+        - name: VERSION
+          value: latest
+      runAfter:
+        - checkbuild
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+        - name: kubeconfig-dir
+          workspace: source
+    - name: startbuild
+      params:
+        - name: SCRIPT
+          value: >-
+            oc start-build $(params.app-name) -n $(params.namespace) 
+            --from-dir=.  --follow
+        - name: VERSION
+          value: latest
+      runAfter:
+        - build
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+        - name: kubeconfig-dir
+          workspace: source
+    - name: deployment
+      params:
+        - name: SCRIPT
+          value: >-
+            oc new-app $(params.app-name):latest -e APP_FILE=$(params.app-file)
+            -n $(params.namespace)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - startbuild
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+        - name: kubeconfig-dir
+          workspace: source
+    - name: exposeroute
+      params:
+        - name: SCRIPT
+          value: oc expose service/$(params.app-name) -n $(params.namespace)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - deployment
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+        - name: kubeconfig-dir
+          workspace: source
+  workspaces:
+    - name: source
