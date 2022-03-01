@@ -16,11 +16,15 @@ oc new-app python-rest-service -e APP_FILE=ws.py
 
 curl -d '{"num1" : [1, 2, 3], "num2":[4, 5, 6]}' -H "Content-Type: application/json" -X POST http://python-rest-service-aaa.apps.cluster-pbcmk.pbcmk.sandbox511.opentlc.com/process
 
-oc new-project dev
+oc new-project staging
+
 oc create serviceaccount pipeline 
-oc policy add-role-to-user admin system:serviceaccount:pipeline:pipeline  -n dev
+
+oc policy add-role-to-user admin system:serviceaccount:pipeline:pipeline  -n staging
 
 oc new-project sit
+
 oc policy add-role-to-user admin system:serviceaccount:pipeline:pipeline  -n sit
-oc policy add-role-to-user system:image-puller system:serviceaccount:sit:default -n dev
+
+oc policy add-role-to-user system:image-puller system:serviceaccount:sit:default -n staging
 
