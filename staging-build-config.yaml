@@ -1,0 +1,24 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: python-rest-service
+  namespace: staging
+  labels:
+    build: python-rest-service
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'python-rest-service:latest'
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'python:latest'
+      env:
+        - name: APP_FILE
+          value: ws.py
+  source:
+    type: Binary

@@ -1,0 +1,37 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"python-rest-service:latest","namespace":"staging"},"fieldPath":"spec.template.spec.containers[?(@.name==\"python-rest-service\")].image"}]
+  namespace: staging
+  name: python-rest-service
+  labels:
+    app: python-rest-service
+    app.kubernetes.io/component: python-rest-service
+    app.kubernetes.io/instance: python-rest-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: python-rest-service
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        deployment: python-rest-service
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+    spec:
+      containers:
+        - name: python-rest-service
+          image: >-
+            image-registry.openshift-image-registry.svc:5000/staging/python-rest-service:latest
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: APP_FILE
+              value: ws.py
+  strategy:
+    type: RollingUpdate

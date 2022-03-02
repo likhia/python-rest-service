@@ -1,0 +1,17 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: python-rest-service
+  namespace: staging
+  labels:
+    app: python-rest-service
+    app.kubernetes.io/component: python-rest-service
+    app.kubernetes.io/instance: python-rest-service
+spec:
+  to:
+    kind: Service
+    name: python-rest-service
+    weight: 100
+  port:
+    targetPort: 8080-tcp
+  wildcardPolicy: None
