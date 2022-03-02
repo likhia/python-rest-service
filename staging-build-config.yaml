@@ -20,5 +20,8 @@ spec:
       env:
         - name: APP_FILE
           value: ws.py
+  postCommit: {}
   source:
     type: Binary
+    binary: {}
+  runPolicy: Serial
